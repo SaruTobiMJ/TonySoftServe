@@ -119,7 +119,7 @@ resource "aws_lb" "TO-nlb" {
 resource "aws_lb_target_group" "TO-lb-tg" {
   name     = "TO-lb-tg"
   port     = 80
-  protocol = "HTTP"
+  protocol = "TCP"
   vpc_id   = aws_vpc.my-vpc.id
 }
 
@@ -138,7 +138,7 @@ resource "aws_lb_target_group_attachment" "VM2-lb-tg-att-2" {
 resource "aws_lb_listener" "TO-lb-listener" {
   load_balancer_arn = aws_lb.TO-nlb.arn
   port              = "80"
-  protocol          = "HTTP"
+  protocol          = "TCP"
 
   default_action {
     type             = "forward"
