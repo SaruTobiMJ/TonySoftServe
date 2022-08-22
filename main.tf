@@ -108,6 +108,7 @@ resource "aws_lb" "TO-nlb" {
   internal           = false
   load_balancer_type = "network"
   subnets            = [aws_subnet.mypublicsubnet-a.id, aws_subnet.mypublicsubnet-b.id]
+  enable_cross_zone_load_balancing = true
 
   enable_deletion_protection = false
 
