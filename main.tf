@@ -9,21 +9,18 @@ terraform {
 }
 
 #Security Group
-resource "aws_default_security_group" "TO-sg" {
+resource "aws_security_group" "TO-instances-sg" {
   vpc_id = aws_vpc.my-vpc.id
   tags = {
-    "Name" = "TO-sg"
+    "Name" = "TO-instances-sg"
   }
-
   ingress {
-    description      = "All data"
-    from_port        = 80
-    to_port          = 80
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    description = "All data"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc-cidr]
   }
-
   ingress {
     description      = "Allow SSH"
     from_port        = 22
@@ -32,7 +29,6 @@ resource "aws_default_security_group" "TO-sg" {
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
-
   egress {
     from_port        = 0
     to_port          = 0
@@ -41,7 +37,6 @@ resource "aws_default_security_group" "TO-sg" {
     ipv6_cidr_blocks = ["::/0"]
   }
 }
-
 
 #Key Pair
 resource "aws_key_pair" "TO-ssh-key" {
@@ -54,6 +49,7 @@ resource "aws_instance" "VM1-instance" {
   ami                         = "ami-052efd3df9dad4825"
   instance_type               = "t3.micro"
   key_name                    = aws_key_pair.TO-ssh-key.key_name
+  security_groups             = [aws_security_group.TO-instances-sg.id]
   subnet_id                   = aws_subnet.mypublicsubnet-a.id
   associate_public_ip_address = true
   tags = {
@@ -80,6 +76,7 @@ resource "aws_instance" "VM2-instance" {
   ami                         = "ami-052efd3df9dad4825"
   instance_type               = "t3.micro"
   key_name                    = aws_key_pair.TO-ssh-key.key_name
+  security_groups             = [aws_security_group.TO-instances-sg.id]
   subnet_id                   = aws_subnet.mypublicsubnet-b.id
   associate_public_ip_address = true
   tags = {
@@ -104,10 +101,10 @@ resource "aws_instance" "VM2-instance" {
 
 #Load Balancer
 resource "aws_lb" "TO-nlb" {
-  name               = "TO-nlb-tf"
-  internal           = false
-  load_balancer_type = "network"
-  subnets            = [aws_subnet.mypublicsubnet-a.id, aws_subnet.mypublicsubnet-b.id]
+  name                             = "TO-nlb-tf"
+  internal                         = false
+  load_balancer_type               = "network"
+  subnets                          = [aws_subnet.mypublicsubnet-a.id, aws_subnet.mypublicsubnet-b.id]
   enable_cross_zone_load_balancing = true
 
   enable_deletion_protection = false
@@ -118,21 +115,22 @@ resource "aws_lb" "TO-nlb" {
 }
 
 resource "aws_lb_target_group" "TO-lb-tg" {
-  name     = "TO-lb-tg"
-  port     = 80
-  protocol = "TCP"
-  vpc_id   = aws_vpc.my-vpc.id
+  name        = "TO-lb-tg"
+  port        = 80
+  protocol    = "TCP"
+  vpc_id      = aws_vpc.my-vpc.id
+  target_type = "ip"
 }
 
 resource "aws_lb_target_group_attachment" "VM1-lb-tg-att-1" {
   target_group_arn = aws_lb_target_group.TO-lb-tg.arn
-  target_id        = aws_instance.VM1-instance.id
+  target_id        = aws_instance.VM1-instance.private_ip
   port             = 80
 }
 
 resource "aws_lb_target_group_attachment" "VM2-lb-tg-att-2" {
   target_group_arn = aws_lb_target_group.TO-lb-tg.arn
-  target_id        = aws_instance.VM2-instance.id
+  target_id        = aws_instance.VM2-instance.private_ip
   port             = 80
 }
 #listener del load balancer
